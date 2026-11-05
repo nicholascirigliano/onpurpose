@@ -34,7 +34,11 @@ struct ContentView: View {
         }
         .sheet(item: $store.pendingSend) { SendSheet(request: $0) }
         .sheet(item: $store.pendingReply) { ReplySheet(message: $0) }
+        .sheet(item: $store.pendingNag) { NagSheet(message: $0) }
         .task {
+            Cloud.listenForPurposeBacks { id, reply, at in
+                store.applyPurposeBack(remoteID: id, reply: reply, at: at)
+            }
             await Scheduler.requestPermission()
             store.reschedule()
         }

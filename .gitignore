@@ -13,3 +13,4 @@ xcuserdata/
 firebase-debug.log
 firestore-debug.log
 emulator-data/
+node_modules/

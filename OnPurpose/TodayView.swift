@@ -53,21 +53,49 @@ struct TodayView: View {
                                     Text(store.person(message.personID)?.name ?? "Someone").font(.subheadline.weight(.semibold))
                                     Group {
                                         if message.isOverdue(now: store.now) {
-                                            Text("Leaving you on read · purposed \(message.date, format: .relative(presentation: .named))")
+                                            Text("Overdue · leaving you on read since \(message.replyDueAt, format: .relative(presentation: .named))")
                                         } else {
-                                            Text("Gets nagged \(message.replyDueAt, format: .relative(presentation: .named))")
+                                            Text("Due back \(message.replyDueAt, format: .relative(presentation: .named))")
                                         }
                                     }
                                     .font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                Button("They did") { store.markReplied(message) }
-                                    .buttonStyle(.bordered)
-                                    .font(.caption)
+                                if message.remoteID == nil {
+                                    // No link went out, so there's no way to hear back automatically.
+                                    Button("They did") { store.markReplied(message) }
+                                        .buttonStyle(.bordered)
+                                        .font(.caption)
+                                }
+                                if message.isOverdue(now: store.now) {
+                                    Button("Nag 🚨") { store.pendingNag = message }
+                                        .buttonStyle(.borderedProminent)
+                                        .font(.caption)
+                                } else {
+                                    Button("Nag") { store.pendingNag = message }
+                                        .buttonStyle(.bordered)
+                                        .font(.caption)
+                                }
                             }
                         }
                     } header: {
                         Text("Waiting to get purposed back")
+                    }
+                }
+
+                if !store.recentPurposeBacks.isEmpty {
+                    Section("They purposed you back") {
+                        ForEach(store.recentPurposeBacks) { message in
+                            HStack(spacing: 12) {
+                                Avatar(person: store.person(message.personID), size: 32)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(store.person(message.personID)?.name ?? "Someone").font(.subheadline.weight(.semibold))
+                                    Text("“\(message.reply ?? "✋")”").font(.subheadline)
+                                }
+                                Spacer()
+                                Text("✋").font(.title2)
+                            }
+                        }
                     }
                 }
 
@@ -89,7 +117,7 @@ struct TodayView: View {
                     }
                 }
 
-                if !store.people.isEmpty && store.duePlans.isEmpty && store.upcoming.isEmpty && store.awaitingReply.isEmpty {
+                if !store.people.isEmpty && store.duePlans.isEmpty && store.upcoming.isEmpty && store.awaitingReply.isEmpty && store.recentPurposeBacks.isEmpty {
                     Section {
                         Text("Nobody's scheduled to be purposed. Tragic. Open People to fix it.")
                             .foregroundStyle(.secondary)

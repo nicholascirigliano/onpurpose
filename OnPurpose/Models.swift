@@ -25,14 +25,28 @@ enum Phrases {
     }
 
     /// The full chain text that goes out over Messages.
-    static func text(from sender: String, _ phrase: String, replyWindowMinutes: Int) -> String {
-        """
+    static func text(from sender: String, _ phrase: String, replyWindowMinutes: Int, link: String? = nil) -> String {
+        var text = """
         🚨 YOU GOT PURPOSED 🚨
 
         \(line(from: sender, phrase))
 
         Purpose them back within \(ReplyWindow.label(replyWindowMinutes)) or face mild consequences.
         """
+        if let link { text += "\n\nPurpose back 👉 \(link)" }
+        return text
+    }
+
+    static func nag(from sender: String, link: String?) -> String {
+        var text = """
+        🚨 FINAL NOTICE 🚨
+
+        Our records show you have NOT purposed \(sender) back.
+
+        This is your last chance. (It isn't. But act like it.)
+        """
+        if let link { text += "\n\n👉 \(link)" }
+        return text
     }
 }
 
@@ -162,6 +176,8 @@ struct Message: Identifiable, Codable, Hashable {
     var replyWindowMinutes: Int
     var repliedAt: Date?
     var reply: String?
+    /// Firestore id for sent purposes, so the link works and purpose-backs find their way here.
+    var remoteID: String?
 
     var replyDueAt: Date { date.addingTimeInterval(Double(replyWindowMinutes) * 60) }
     func isOverdue(now: Date) -> Bool { repliedAt == nil && now >= replyDueAt }

@@ -129,42 +129,93 @@ struct SendSheet: View {
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     let request: SendRequest
-
-    private var fullText: String {
-        Phrases.text(from: store.senderName, request.phrase, replyWindowMinutes: request.replyWindowMinutes)
-    }
+    @State private var purposeID: String?
+    @State private var ready = false
 
     var body: some View {
-        let person = store.person(request.personID)
-        if MFMessageComposeViewController.canSendText(), let phone = person?.phone, !phone.isEmpty {
-            MessageComposeView(recipients: [phone], body: fullText) { result in
-                if result == .sent { store.recordSend(request) }
-                dismiss()
+        if let person = store.person(request.personID) {
+            if ready {
+                let link = purposeID.map(Cloud.link(for:))
+                TextComposer(person: person,
+                             title: "Purposing \(person.name)",
+                             text: Phrases.text(from: store.senderName, request.phrase,
+                                                replyWindowMinutes: request.replyWindowMinutes, link: link),
+                             note: link == nil ? "Couldn't reach the server, so this one goes without a link." : nil,
+                             confirmLabel: "Mark as purposed ✋") { sent in
+                    if sent {
+                        store.recordSend(request, remoteID: purposeID)
+                    } else if let purposeID {
+                        Cloud.deletePurpose(purposeID)
+                    }
+                    dismiss()
+                }
+            } else {
+                ProgressView("Summoning a purpose…")
+                    .presentationDetents([.medium])
+                    .task {
+                        purposeID = try? await Cloud.createPurpose(
+                            senderName: store.senderName, recipientName: person.name,
+                            phrase: request.phrase, replyWindowMinutes: request.replyWindowMinutes)
+                        ready = true
+                    }
             }
-            .ignoresSafeArea()
+        }
+    }
+}
+
+struct NagSheet: View {
+    @Environment(Store.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let message: Message
+
+    var body: some View {
+        if let person = store.person(message.personID) {
+            TextComposer(person: person,
+                         title: "Nagging \(person.name)",
+                         text: Phrases.nag(from: store.senderName, link: message.remoteID.map(Cloud.link(for:))),
+                         note: nil,
+                         confirmLabel: "Mark as nagged 🚨") { _ in dismiss() }
+        }
+    }
+}
+
+/// Messages' compose screen on a phone; a preview with a confirm button where texting isn't available.
+struct TextComposer: View {
+    let person: Person
+    let title: String
+    let text: String
+    let note: String?
+    let confirmLabel: String
+    let onDone: (_ sent: Bool) -> Void
+
+    var body: some View {
+        if MFMessageComposeViewController.canSendText(), !person.phone.isEmpty {
+            MessageComposeView(recipients: [person.phone], body: text) { onDone($0 == .sent) }
+                .ignoresSafeArea()
         } else {
             NavigationStack {
-                VStack(spacing: 20) {
-                    Avatar(person: person, size: 64)
-                    Text("Purposing \(person?.name ?? "them")").font(.headline)
-                    PhraseBubble(text: fullText)
-                    Text("This device can't send texts, so OnPurpose will just log it as purposed.")
-                        .font(.footnote)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                    Button {
-                        store.recordSend(request)
-                        dismiss()
-                    } label: {
-                        Text("Mark as purposed ✋").frame(maxWidth: .infinity)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        Avatar(person: person, size: 64)
+                        Text(title).font(.headline)
+                        PhraseBubble(text: text)
+                        Text(note ?? "This device can't send texts, so OnPurpose will just log it.")
+                            .font(.footnote)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
+                        Button {
+                            onDone(true)
+                        } label: {
+                            Text(confirmLabel).frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .padding(24)
                 }
-                .padding(24)
-                .toolbar { Button("Cancel") { dismiss() } }
+                .toolbar { Button("Cancel") { onDone(false) } }
             }
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.large])
         }
     }
 }

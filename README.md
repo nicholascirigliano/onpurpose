@@ -7,30 +7,54 @@ A joke chain-text app. You "purpose" your friends on a schedule, and they're sup
 > Nick wants you to have a good day on purpose ✋
 >
 > Purpose them back within 3 hr or face mild consequences.
+>
+> Purpose back 👉 https://nicholascirigliano.github.io/onpurpose/?p=…
 
 The "have a good day" part is swappable (touch grass, eat a vegetable, parallel park flawlessly…) or write your own.
-Set your name with the ✍️ button on the Today tab.
 
-## What works now (iPhone, no server)
+## How it works
 
-- **People**: add someone with a name, phone number and emoji.
-- **Schedules**: pick a phrase (or write your own), set it to Once, Daily, Weekdays or Weekly, and choose a time.
-  When it's time, you get a notification. Tap it and the Messages composer opens with the text filled in.
-- **Reply reminder**: each schedule sets how long the recipient has to reply before they're nudged.
-- **Inbox**: messages sent to you. If you don't reply in time, you get a "you haven't replied" notification.
-  Until there's a backend, the ✨ menu in the Inbox fakes an incoming message (reminder after 1 minute).
-- **Today**: what's ready to send, what's coming up, and who hasn't replied yet.
+1. **You send it from your own phone.** The app creates the purpose in Firebase, then opens Messages with the text and link filled in.
+2. **They tap the link.** A web page (`docs/`, on GitHub Pages) shows the purpose and a **Purpose back** button. No app or account needed.
+3. **You find out.** The app listens to Firebase and moves them to "They purposed you back".
+4. **They're late?** Hit **Nag** for a "🚨 FINAL NOTICE" text with the same link.
 
-Data is saved on the device (`Documents/onpurpose.json`).
+## What's in here
 
-## Run it
+| Path | What |
+| --- | --- |
+| `OnPurpose/`, `OnPurpose.xcodeproj` | SwiftUI iPhone app (iOS 17+). `Cloud.swift` is the Firebase part. |
+| `docs/index.html` | The page the link opens. Plain HTML; Firebase loads from Google's CDN. |
+| `firestore.rules` | Who can do what in the database. |
+| `firebase-tests/` | Tests for the rules. |
 
-Open `OnPurpose.xcodeproj` in Xcode and run on a simulator or your iPhone.
-Texting only works on a real phone; the simulator logs the message as sent instead.
+Data lives in one Firestore collection, `purposes`. The random document id is the secret in the link: anyone with a link can read that one purpose and purpose back once, only the app can create purposes, and nobody can list other people's.
+`GoogleService-Info.plist` and the web config are safe to publish; the rules are what protect the data.
 
-## What needs a backend
+## Local development
 
-iOS doesn't let apps send texts without you tapping Send, and an app can't nudge someone who doesn't have it.
-For fully automatic sending and for nudging the recipient, both people need the app plus a server
-(for example Firebase or CloudKit): accounts, messages delivered in the app, and push notifications for reply reminders.
-`Store.receiveSample` and `Store.recordSend` are where that service would connect.
+Everything runs against Firebase's emulator, so nothing touches the real database:
+
+```bash
+firebase emulators:start --only auth,firestore
+```
+```bash
+python3 -m http.server 5050 --bind 127.0.0.1 --directory docs
+```
+
+Then run the app with the `-useEmulator` launch argument (Xcode: Product → Scheme → Edit Scheme → Run → Arguments). Links point at `http://localhost:5050/` instead of GitHub Pages.
+
+Rules tests:
+
+```bash
+(cd firebase-tests && npm install) && firebase emulators:exec --only firestore "npm --prefix firebase-tests test"
+```
+
+## Going live
+
+1. Firebase console: Authentication → turn on **Anonymous**; create the **Firestore** database (production mode).
+2. Deploy the rules: `firebase deploy --only firestore:rules`
+3. GitHub → repo Settings → Pages → Deploy from branch → `main`, folder `/docs`.
+4. In Xcode, pick your team under Signing & Capabilities and run on your iPhone.
+
+Everything above stays on free plans (Firebase Spark, GitHub Pages on a public repo).

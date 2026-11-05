@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>You got purposed 🚨</title>
+  <meta name="description" content="Someone wants you to have a good day on purpose ✋ Tap to purpose them back.">
+  <meta property="og:title" content="🚨 You got purposed">
+  <meta property="og:description" content="Someone wants you to have a good day on purpose ✋ Tap to purpose them back.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#E76B47">
+  <style>
+    :root {
+      --accent: #E76B47;
+      --accent-ink: #fff;
+      --bg: #FFF6F1;
+      --card: #fff;
+      --ink: #1d1a19;
+      --muted: #7a6f6b;
+      --line: #f0e2da;
+      --danger: #d6342c;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --accent: #F98E6B;
+        --accent-ink: #1d1a19;
+        --bg: #171312;
+        --card: #241e1c;
+        --ink: #f6eeea;
+        --muted: #a99d98;
+        --line: #3a302c;
+        --danger: #ff6b61;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px 48px;
+    }
+    main { width: 100%; max-width: 440px; }
+    .siren {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--danger);
+      text-align: center;
+      margin: 8px 0 18px;
+      animation: wobble 1.2s ease-in-out infinite;
+    }
+    @keyframes wobble { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+    @media (prefers-reduced-motion: reduce) { .siren { animation: none; } }
+    .bubble {
+      background: var(--accent);
+      color: var(--accent-ink);
+      border-radius: 24px 24px 6px 24px;
+      padding: 22px 22px;
+      font-size: 24px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+    .bubble .hand { display: inline-block; }
+    .meta { text-align: center; color: var(--muted); font-size: 15px; margin: 14px 0 26px; }
+    .meta.overdue { color: var(--danger); font-weight: 700; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px;
+    }
+    .card h2 { font-size: 17px; margin: 0 0 12px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .chip {
+      border: 1.5px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 9px 14px;
+      font: inherit;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .chip[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+    input[type=text] {
+      width: 100%;
+      font: inherit;
+      font-size: 16px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1.5px solid var(--line);
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .go {
+      width: 100%;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 16px;
+      padding: 16px;
+      font: inherit;
+      font-size: 18px;
+      font-weight: 800;
+      background: var(--accent);
+      color: var(--accent-ink);
+      cursor: pointer;
+    }
+    .go:disabled { opacity: 0.5; cursor: default; }
+    .center { text-align: center; }
+    .big { font-size: 64px; margin: 8px 0; }
+    h1 { font-size: 28px; margin: 6px 0 8px; }
+    p { line-height: 1.45; }
+    .muted { color: var(--muted); }
+    .pitch { margin-top: 28px; }
+    .pitch a { color: var(--accent); font-weight: 700; }
+    .error { color: var(--danger); font-size: 14px; margin-top: 10px; min-height: 1em; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <section id="loading" class="center muted"><p>Locating your purpose…</p></section>
+
+  <section id="purpose" hidden>
+    <div class="siren">🚨 You got purposed 🚨</div>
+    <div class="bubble" id="line"></div>
+    <div class="meta" id="deadline"></div>
+
+    <div class="card" id="reply-card">
+      <h2>Purpose them back</h2>
+      <div class="chips" id="chips"></div>
+      <input type="text" id="custom" maxlength="140" placeholder="Or say something unhinged">
+      <button class="go" id="send" disabled>Purpose back ✋</button>
+      <div class="error" id="error" role="alert"></div>
+    </div>
+  </section>
+
+  <section id="done" class="center" hidden>
+    <div class="big">✋</div>
+    <h1>Purposed back.</h1>
+    <p class="muted" id="done-detail"></p>
+    <div class="card pitch">
+      <h2>Your turn to purpose someone</h2>
+      <p class="muted">The chain doesn't continue itself. Get OnPurpose and pick your victims.</p>
+      <p><strong>OnPurpose for iPhone is coming soon.</strong></p>
+    </div>
+  </section>
+
+  <section id="missing" class="center" hidden>
+    <div class="big">👻</div>
+    <h1>No purpose here</h1>
+    <p class="muted">This link is broken, or the purpose was deleted. Spooky.</p>
+  </section>
+
+  <section id="home" class="center" hidden>
+    <div class="big">✋</div>
+    <h1>OnPurpose</h1>
+    <p class="muted">A chain text, but for good days. Your friends purpose you. You purpose them back. Nobody is safe.</p>
+  </section>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import {
+    connectFirestoreEmulator, doc, getDoc, getFirestore, serverTimestamp, updateDoc,
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6Aq8zjfR96YQRDv-LzkorSfcjonxH5r4",
+    authDomain: "onpurpose-440e1.firebaseapp.com",
+    projectId: "onpurpose-440e1",
+    storageBucket: "onpurpose-440e1.firebasestorage.app",
+    messagingSenderId: "111714295200",
+    appId: "1:111714295200:web:4fedc730bbc553a9de18c5",
+  };
+
+  const QUICK_REPLIES = [
+    "Consider me purposed ✋",
+    "Purposing you right back 🫵",
+    "I accept this purpose begrudgingly",
+    "Who gave you this power",
+  ];
+
+  const db = getFirestore(initializeApp(firebaseConfig));
+  if (["localhost", "127.0.0.1"].includes(location.hostname)) {
+    connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  }
+
+  const $ = (id) => document.getElementById(id);
+  const show = (id) => {
+    for (const s of ["loading", "purpose", "done", "missing", "home"]) $(s).hidden = s !== id;
+  };
+
+  function duration(ms) {
+    const mins = Math.max(1, Math.round(ms / 60000));
+    if (mins < 60) return `${mins} min`;
+    const hrs = Math.round(mins / 60);
+    if (hrs < 48) return `${hrs} hr`;
+    return `${Math.round(hrs / 24)} days`;
+  }
+
+  function showDone(p, reply) {
+    $("done-detail").textContent = `You told ${p.senderName}: “${reply}”. They'll know.`;
+    show("done");
+  }
+
+  async function main() {
+    const id = new URLSearchParams(location.search).get("p");
+    if (!id) return show("home");
+
+    const ref = doc(db, "purposes", id);
+    let snap;
+    try {
+      snap = await getDoc(ref);
+    } catch {
+      return show("missing");
+    }
+    if (!snap.exists()) return show("missing");
+    const p = snap.data();
+
+    if (p.purposedBackAt) return showDone(p, p.reply);
+
+    const line = $("line");
+    line.textContent = `${p.recipientName}, ${p.senderName} wants you to ${p.phrase} on purpose `;
+    const hand = document.createElement("span");
+    hand.className = "hand";
+    hand.textContent = "✋";
+    line.append(hand);
+
+    const left = p.dueAt.toMillis() - Date.now();
+    const deadline = $("deadline");
+    if (left > 0) {
+      deadline.textContent = `Purpose ${p.senderName} back within ${duration(left)} or face mild consequences.`;
+    } else {
+      deadline.textContent = `⚠️ Overdue by ${duration(-left)}. ${p.senderName} has noticed.`;
+      deadline.classList.add("overdue");
+    }
+
+    let reply = "";
+    const send = $("send");
+    const custom = $("custom");
+    const chips = QUICK_REPLIES.map((text) => {
+      const b = document.createElement("button");
+      b.className = "chip";
+      b.type = "button";
+      b.textContent = text;
+      b.setAttribute("aria-pressed", "false");
+      b.onclick = () => {
+        reply = text;
+        custom.value = "";
+        chips.forEach((c) => c.setAttribute("aria-pressed", String(c === b)));
+        send.disabled = false;
+      };
+      $("chips").append(b);
+      return b;
+    });
+    custom.oninput = () => {
+      reply = custom.value.trim();
+      chips.forEach((c) => c.setAttribute("aria-pressed", "false"));
+      send.disabled = reply.length === 0;
+    };
+
+    send.onclick = async () => {
+      send.disabled = true;
+      $("error").textContent = "";
+      try {
+        await updateDoc(ref, { purposedBackAt: serverTimestamp(), reply });
+        showDone(p, reply);
+      } catch {
+        // Most likely someone already purposed back from this link.
+        const fresh = await getDoc(ref).catch(() => null);
+        if (fresh?.data()?.purposedBackAt) return showDone(p, fresh.data().reply);
+        $("error").textContent = "That didn't go through. Try again?";
+        send.disabled = false;
+      }
+    };
+
+    show("purpose");
+  }
+
+  main();
+</script>
+</body>
+</html>

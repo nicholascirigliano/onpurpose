@@ -23,6 +23,7 @@ final class Store {
     var tab: Tab = .today
     var pendingSend: SendRequest?
     var pendingReply: Message?
+    var pendingNag: Message?
     /// Ticked by a timer so due/overdue states refresh while the app is open.
     var now = Date()
 
@@ -64,6 +65,14 @@ final class Store {
         }
     }
 
+    /// Sent purposes answered in the last day, for the payoff on Today.
+    var recentPurposeBacks: [Message] {
+        messages.filter {
+            $0.direction == .sent && ($0.repliedAt.map { now.timeIntervalSince($0) < 86_400 } ?? false)
+        }
+        .sorted { $0.repliedAt! > $1.repliedAt! }
+    }
+
     var unrepliedCount: Int { inbox.filter { $0.repliedAt == nil }.count }
 
     // MARK: People and plans
@@ -96,9 +105,10 @@ final class Store {
 
     // MARK: Messages
 
-    func recordSend(_ request: SendRequest) {
+    func recordSend(_ request: SendRequest, remoteID: String?) {
         messages.append(Message(personID: request.personID, phrase: request.phrase,
-                                direction: .sent, replyWindowMinutes: request.replyWindowMinutes))
+                                direction: .sent, replyWindowMinutes: request.replyWindowMinutes,
+                                remoteID: remoteID))
         if let planID = request.planID, let i = plans.firstIndex(where: { $0.id == planID }) {
             plans[i].lastSentAt = .now
             if plans[i].repeatRule == .once { plans[i].isActive = false }
@@ -115,7 +125,16 @@ final class Store {
         persist()
     }
 
-    /// Stands in for a friend's message arriving until there's a backend.
+    /// Someone tapped Purpose back on the web page for one of my purposes.
+    func applyPurposeBack(remoteID: String, reply: String, at date: Date) {
+        guard let i = messages.firstIndex(where: { $0.remoteID == remoteID }),
+              messages[i].repliedAt == nil else { return }
+        messages[i].repliedAt = date
+        messages[i].reply = reply
+        persist()
+    }
+
+    /// Stands in for a friend's message arriving until app-to-app purposes exist.
     func receiveSample(from person: Person?, replyWindowMinutes: Int = 1) {
         let sender = person ?? {
             let p = Person(name: "Alex", phone: "", emoji: "🦆")
