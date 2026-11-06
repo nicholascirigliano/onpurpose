@@ -150,6 +150,17 @@ struct PersonEditor: View {
         NavigationStack {
             Form {
                 Section {
+                    Button {
+                        ContactPicker.present { name, phone in
+                            person.name = name
+                            person.phone = phone
+                        }
+                    } label: {
+                        Label("Choose from Contacts", systemImage: "person.crop.circle.badge.plus")
+                    }
+                }
+
+                Section {
                     TextField("Name", text: $person.name)
                         .textContentType(.name)
                     TextField("Phone number", text: $person.phone)
